@@ -30,5 +30,5 @@ public class LeaveRequest {
     @Enumerated(EnumType.STRING)
     private LeaveStatus status = LeaveStatus.PENDING;
 
-    private int days;
+    private Integer days;
 }

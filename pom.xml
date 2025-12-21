@@ -53,6 +53,7 @@
 			<artifactId>spring-boot-starter-mail</artifactId>
 		</dependency>
 
+
 		<!-- Lombok (compile time only) -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>

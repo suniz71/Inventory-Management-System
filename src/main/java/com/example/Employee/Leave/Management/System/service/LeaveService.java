@@ -1,18 +1,21 @@
 package com.example.Employee.Leave.Management.System.service;
 
 import com.example.Employee.Leave.Management.System.dto.LeaveRequestDTO;
-
-import com.example.Employee.Leave.Management.System.model.LeaveRequest;
-import com.example.Employee.Leave.Management.System.model.LeaveStatus;
+import com.example.Employee.Leave.Management.System.exception.NotFoundException;
+import com.example.Employee.Leave.Management.System.model.*;
 import com.example.Employee.Leave.Management.System.repository.EmployeeRepository;
-
 import com.example.Employee.Leave.Management.System.repository.LeaveRequestRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Properties;
 
 @Service
 @RequiredArgsConstructor
@@ -23,72 +26,136 @@ public class LeaveService {
     private final EmployeeRepository empRepo;
     private final EmailService emailService;
 
-    private LeaveRequestDTO toDTO(LeaveRequest lr) {
-        return LeaveRequestDTO.builder()
-                .id(lr.getId())
-                .employeeId(lr.getEmployee().getId())
-                .fromDate(lr.getFromDate())
-                .toDate(lr.getToDate())
-                .reason(lr.getReason())
-                .status(lr.getStatus())
-                .days(lr.getDays())
-                .build();
-    }
+    public LeaveRequestDTO applyLeave(Long empId, LeaveRequest leave) {
 
-    public LeaveRequestDTO applyLeaveDTO(Long employeeId, LeaveRequest lr) {
-        var emp = empRepo.findById(employeeId).orElseThrow(();
+        if (leave.getFromDate() == null || leave.getToDate() == null ||
+                leave.getFromDate().isAfter(leave.getToDate()))
+            throw new IllegalArgumentException("Invalid date range");
 
-        long days = ChronoUnit.DAYS.between(lr.getFromDate(), lr.getToDate()) + 1;
-        lr.setDays((int) days);
-        if (days <= 0) throw new IllegalArgumentException("Invalid date range");
-        if (emp.getLeaveBalance() < days) throw new IllegalArgumentException("Insufficient leave balance");
+        Employee emp = empRepo.findById(empId)
+                .orElseThrow(() -> new NotFoundException("Employee not found"));
 
-        lr.setStatus(LeaveStatus.PENDING);
-        var saved = leaveRepo.save(lr);
+        int days = (int) ChronoUnit.DAYS.between(
+                leave.getFromDate(), leave.getToDate()) + 1;
 
-        if (emp.getManagerId() != null) {
-            empRepo.findById(emp.getManagerId()).ifPresent(manager ->
+        if (emp.getLeaveBalance() < days)
+            throw new IllegalArgumentException("Insufficient leave balance");
+
+        leave.setEmployee(emp);
+        leave.setDays(days);
+        leave.setStatus(LeaveStatus.PENDING);
+
+        LeaveRequest saved = leaveRepo.save(leave);
+
+        if (emp.getManagerId() != null)
+            empRepo.findById(emp.getManagerId()).ifPresent(m ->
                     emailService.sendSimple(
-                            manager.getEmail(),
-                            "Leave approval required",
-                            emp.getName() + " applied for leave from " + lr.getFromDate() + " to " + lr.getToDate()
-                    )
-            );
-        }
-        log.info("Leave applied by {} for {} days", emp.getId(), days);
-        return toDTO(saved);
+                            m.getEmail(),
+                            "Leave Approval Request",
+                            emp.getName() + " applied leave from " +
+                                    leave.getFromDate() + " to " + leave.getToDate()
+                    ));
+
+        return mapToDTO(saved);
     }
 
-    @Transactional
-    public LeaveRequestDTO approveDTO(Long leaveId, Long approverId, boolean approve) {
-        var lr = leaveRepo.findById(leaveId).orElseThrow(();
+    public LeaveRequestDTO approveLeave(Long leaveId, Long managerId, boolean approve) {
 
-        if (emp.getManagerId() == null || !emp.getManagerId().equals(approverId))
-            throw new IllegalArgumentException("Only manager can approve/reject");
+        LeaveRequest leave = leaveRepo.findById(leaveId)
+                .orElseThrow(() -> new NotFoundException("Leave not found"));
+
+        Employee emp = leave.getEmployee();
+
+        if (!managerId.equals(emp.getManagerId()))
+            throw new IllegalArgumentException("Unauthorized action");
+
+        leave.setStatus(approve ? LeaveStatus.APPROVED : LeaveStatus.REJECTED);
 
         if (approve) {
-            if (emp.getLeaveBalance() < lr.getDays())
-                throw new IllegalArgumentException("Insufficient balance at approval time");
-            emp.setLeaveBalance(emp.getLeaveBalance() - lr.getDays());
-            lr.setStatus(LeaveStatus.APPROVED);
-            emailService.sendSimple(emp.getEmail(), "Leave Approved", "Your leave has been approved.");
-        } else {
-            lr.setStatus(LeaveStatus.REJECTED);
-            emailService.sendSimple(emp.getEmail(), "Leave Rejected", "Your leave request was rejected.");
+            emp.setLeaveBalance(emp.getLeaveBalance() - leave.getDays());
+            empRepo.save(emp);
         }
-        empRepo.save(emp);
-        return toDTO(lr);
+
+        leaveRepo.save(leave);
+
+        emailService.sendSimple(
+                emp.getEmail(),
+                approve ? "Leave Approved" : "Leave Rejected",
+                "Your leave from " + leave.getFromDate() + " to " +
+                        leave.getToDate() + " has been " +
+                        (approve ? "APPROVED." : "REJECTED.")
+        );
+
+        return mapToDTO(leave);
     }
 
-    public List<LeaveRequestDTO> searchByStatusDTO(LeaveStatus status) {
-        return leaveRepo.findByStatus(status).stream().map(this::toDTO).toList();
+    public LeaveRequestDTO updateLeave(Long leaveId, LeaveRequestDTO dto) {
+
+        LeaveRequest leave = leaveRepo.findById(leaveId)
+                .orElseThrow(() -> new NotFoundException("Leave not found"));
+
+        if (leave.getStatus() != LeaveStatus.PENDING)
+            throw new IllegalArgumentException("Only PENDING leave can be updated");
+
+        int newDays = (int) ChronoUnit.DAYS.between(
+                dto.getFromDate(), dto.getToDate()) + 1;
+
+        Employee emp = leave.getEmployee();
+
+        if (newDays > leave.getDays() &&
+                emp.getLeaveBalance() < (newDays - leave.getDays()))
+            throw new IllegalArgumentException("Insufficient balance");
+
+        leave.setFromDate(dto.getFromDate());
+        leave.setToDate(dto.getToDate());
+        leave.setReason(dto.getReason());
+        leave.setDays(newDays);
+
+        log.info("Leave updated for employee {}", emp.getId());
+
+        return mapToDTO(leaveRepo.save(leave));
     }
 
-    public List<LeaveRequestDTO> findBetweenDTO(java.time.LocalDate start, java.time.LocalDate end) {
-        return leaveRepo.findByFromDateBetween(start, end).stream().map(this::toDTO).toList();
+    public List<LeaveRequestDTO> getLeavesByStatus(LeaveStatus status) {
+        return leaveRepo.findByStatus(status).stream()
+                .map(this::mapToDTO).toList();
     }
 
-    public List<LeaveRequestDTO> byEmployeeDTO(Long empId) {
-        return leaveRepo.findByEmployeeId(empId).stream().map(this::toDTO).toList();
+    public List<LeaveRequestDTO> getLeavesByEmployee(Long empId) {
+        return leaveRepo.findByEmployeeId(empId).stream()
+                .map(this::mapToDTO).toList();
+    }
+
+    private LeaveRequestDTO mapToDTO(LeaveRequest leave) {
+        return new LeaveRequestDTO(
+                leave.getId(),
+                leave.getEmployee().getId(),
+                leave.getFromDate(),
+                leave.getToDate(),
+                leave.getReason(),
+                leave.getStatus(),
+                leave.getDays()
+        );
+    }
+
+    @Configuration
+    public static class Javamailsender {
+
+        @Bean
+        public JavaMailSender javaMailSender() {
+            JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
+            mailSender.setHost("smtp.gmail.com");
+            mailSender.setPort(587);
+            mailSender.setUsername("yourgmail@gmail.com");
+            mailSender.setPassword("your16characterapppassword");
+
+            Properties props = mailSender.getJavaMailProperties();
+            props.put("mail.transport.protocol", "smtp");
+            props.put("mail.smtp.auth", "true");
+            props.put("mail.smtp.starttls.enable", "true");
+            props.put("mail.debug", "true");
+
+            return mailSender;
+        }
     }
 }
