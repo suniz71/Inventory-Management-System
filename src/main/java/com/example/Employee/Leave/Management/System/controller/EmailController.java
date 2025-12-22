@@ -19,7 +19,7 @@ public class EmailController {
             return ResponseEntity.ok("Email sent to " + to);
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body("Error: " + e.getMessage());
+            return ResponseEntity.status(500).body("Error: " +e.getMessage());
         }
     }
 }

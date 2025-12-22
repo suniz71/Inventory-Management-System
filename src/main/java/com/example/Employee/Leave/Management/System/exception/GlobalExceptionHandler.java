@@ -1,32 +1,27 @@
 package com.example.Employee.Leave.Management.System.exception;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+
     @ExceptionHandler(NotFoundException.class)
-    public ResponseEntity<?> notFound(NotFoundException e) {
-        return ResponseEntity.status(404).body("Not Found");
+    public ResponseEntity<String> handleNotFound(NotFoundException e) {
+        return ResponseEntity.status(404).body(e.getMessage());
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<?> validationError(MethodArgumentNotValidException e) {
-        return ResponseEntity.badRequest().body(
-                e.getBindingResult().getFieldErrors()
-                        .stream()
-                        .map(err -> err.getField() + " : " + err.getDefaultMessage())
-                        .collect(Collectors.toList())
-        );
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleBadRequest(IllegalArgumentException e) {
+        return ResponseEntity.badRequest().body(e.getMessage());
     }
+
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<?> otherError(Exception e) {
-        return ResponseEntity.status(500).body("Something went wrong");
+    public ResponseEntity<String> handleException(Exception e) {
+        return ResponseEntity.status(500).body(e.getMessage());
     }
 }

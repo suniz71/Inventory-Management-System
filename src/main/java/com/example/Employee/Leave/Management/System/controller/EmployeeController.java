@@ -16,7 +16,7 @@ public class EmployeeController {
     private final EmployeeRepository repo;
     private final EmailService emailService;
 
-    // ✅ CREATE EMPLOYEE
+    //  CREATE EMPLOYEE
     @PostMapping
     public Employee create(@RequestBody Employee e) {
 
@@ -32,20 +32,20 @@ public class EmployeeController {
         return savedEmployee;
     }
 
-    // ✅ GET ALL EMPLOYEES
+    // GET ALL EMPLOYEES
     @GetMapping
     public List<Employee> all() {
         return repo.findAll();
     }
 
-    // ✅ GET EMPLOYEE BY ID
+    // GET EMPLOYEE BY ID
     @GetMapping("/{id}")
     public Employee one(@PathVariable Long id) {
         return repo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
     }
 
-    // ✅ UPDATE EMPLOYEE
+    // UPDATE EMPLOYEE
     @PutMapping("/{id}")
     public Employee update(@PathVariable Long id, @RequestBody Employee updatedEmployee) {
 
@@ -68,7 +68,7 @@ public class EmployeeController {
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
     }
 
-    // ✅ DELETE EMPLOYEE
+    // DELETE EMPLOYEE
     @DeleteMapping("/{id}")
     public String delete(@PathVariable Long id) {
 

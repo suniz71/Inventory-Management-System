@@ -23,7 +23,7 @@ public class LeaveRequest {
     private LocalDate fromDate;
 
     @NotNull
-    private LocalDate toDate;
+    private LocalDate  toDate;
 
     private String reason;
 

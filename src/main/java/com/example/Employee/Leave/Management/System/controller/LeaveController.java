@@ -52,7 +52,8 @@ public class LeaveController {
 
     // GET BY EMPLOYEE
     @GetMapping("/employee/{id}")
-    public List<LeaveRequestDTO> byEmployee(@PathVariable Long id) {
+    public List<LeaveRequestDTO> byEmployee(@PathVariable  Long id) {
+
         return service.getLeavesByEmployee(id);
     }
 

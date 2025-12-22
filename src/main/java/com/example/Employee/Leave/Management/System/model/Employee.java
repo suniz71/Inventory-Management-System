@@ -22,7 +22,7 @@ public class Employee {
     private Long id;
 
     @NotBlank
-    private String name;
+    private String  name;
 
     @Email
     @NotBlank

@@ -39,7 +39,7 @@ public class LeaveService {
                 leave.getFromDate(), leave.getToDate()) + 1;
 
         if (emp.getLeaveBalance() < days)
-            throw new IllegalArgumentException("Insufficient leave balance");
+            throw new IllegalArgumentException ("Insufficient leave balance");
 
         leave.setEmployee(emp);
         leave.setDays(days);
@@ -47,14 +47,14 @@ public class LeaveService {
 
         LeaveRequest saved = leaveRepo.save(leave);
 
-        if (emp.getManagerId() != null)
+       /* if (emp.getManagerId() != null)
             empRepo.findById(emp.getManagerId()).ifPresent(m ->
                     emailService.sendSimple(
                             m.getEmail(),
                             "Leave Approval Request",
                             emp.getName() + " applied leave from " +
                                     leave.getFromDate() + " to " + leave.getToDate()
-                    ));
+                    )); */
 
         return mapToDTO(saved);
     }
@@ -78,13 +78,13 @@ public class LeaveService {
 
         leaveRepo.save(leave);
 
-        emailService.sendSimple(
+     /*   emailService.sendSimple(
                 emp.getEmail(),
                 approve ? "Leave Approved" : "Leave Rejected",
                 "Your leave from " + leave.getFromDate() + " to " +
                         leave.getToDate() + " has been " +
                         (approve ? "APPROVED." : "REJECTED.")
-        );
+        );*/
 
         return mapToDTO(leave);
     }
