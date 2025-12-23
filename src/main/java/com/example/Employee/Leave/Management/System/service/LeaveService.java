@@ -112,7 +112,6 @@ public class LeaveService {
         leave.setDays(newDays);
 
         log.info("Leave updated for employee {}", emp.getId());
-
         return mapToDTO(leaveRepo.save(leave));
     }
 

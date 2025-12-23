@@ -13,6 +13,7 @@ import java.time.LocalDate;
 @Builder
 public class LeaveRequest {
     @Id
+
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 

@@ -62,7 +62,6 @@ public class LeaveController {
     public ResponseEntity<LeaveRequestDTO> update(
             @PathVariable Long leaveId,
             @RequestBody LeaveRequestDTO dto) {
-
         return ResponseEntity.ok(service.updateLeave(leaveId, dto));
     }
 }

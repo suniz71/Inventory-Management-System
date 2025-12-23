@@ -18,16 +18,16 @@ public class EmployeeController {
 
     //  CREATE EMPLOYEE
     @PostMapping
-    public Employee create(@RequestBody Employee e) {
+    public Employee create (@RequestBody Employee e) {
 
         Employee savedEmployee = repo.save(e);
 
-        emailService.sendSimple(
+        /*emailService.sendSimple(
                 savedEmployee.getEmail(),
                 "Welcome to the Company",
                 "Hi " + savedEmployee.getName() +
                         ",\n\nYour employee profile has been created successfully."
-        );
+        );*/
 
         return savedEmployee;
     }
@@ -58,7 +58,7 @@ public class EmployeeController {
 
                     Employee saved = repo.save(emp);
 
-                    emailService.sendSimple(
+                   emailService.sendSimple(
                             saved.getEmail(),
                             "Profile Updated",
                             "Hi " + saved.getName() +
@@ -77,12 +77,12 @@ public class EmployeeController {
 
         repo.deleteById(id);
 
-        emailService.sendSimple(
+      /*  emailService.sendSimple(
                 emp.getEmail(),
                 "Account Deleted",
                 "Hi " + emp.getName() +
                         ",\n\nYour employee account has been deleted."
-        );
+        );*/
 
         return "Deleted successfully";
     }

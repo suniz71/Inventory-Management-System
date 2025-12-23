@@ -12,7 +12,7 @@ public class EmailController {
 
     private final EmailService emailService;
 
-    @PostMapping("/test")
+    @PostMapping ("/test")
     public ResponseEntity<String> testEmail(@RequestParam String to) {
         try {
             emailService.sendSimple(to, "Test Email", "Your email service is working!");
